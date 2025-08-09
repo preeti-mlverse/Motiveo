@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, Send, Bot, User, X, Sparkles, Target, Heart, Dumbbell, Footprints, Moon, Calendar } from 'lucide-react';
 import { GoalType } from '../../types';
-import { goalSpecificAI, isGoalAIReady } from '../../services/goalSpecificAI';
+import { aiAssistant, updateAIContext, sendAIMessage, getAIHistory, isAIConfigured } from '../../services/aiAssistantService';
 import { useAppStore } from '../../store/useAppStore';
 import { useWeightLossStore } from '../../store/useWeightLossStore';
 import { useCardioStore } from '../../store/useCardioStore';
@@ -55,7 +55,7 @@ export const GoalSpecificAIAssistant: React.FC<GoalSpecificAIAssistantProps> = (
 
   // Get relevant stores
   const { userProfile, goals, logEntries, addLogEntry } = useAppStore();
-  const { profile: weightLossProfile, getTodayCalories, getTodayMeals } = useWeightLossStore();
+  const { profile: weightLossProfile, mealLogs } = useWeightLossStore();
   const { profile: cardioProfile, getTodaySessions, getWeeklyStats } = useCardioStore();
   const { profile: strengthProfile } = useStrengthStore();
   const { profile: sleepProfile, getLastNightSleep, getWeeklyAverage } = useSleepStore();
@@ -65,9 +65,36 @@ export const GoalSpecificAIAssistant: React.FC<GoalSpecificAIAssistantProps> = (
   const goalColor = goalColors[goalType];
 
   useEffect(() => {
-    setAiConfigured(isGoalAIReady());
+    setAiConfigured(isAIConfigured());
     initializeConversation();
+    updateUserContext();
   }, [goalType]);
+
+  const updateUserContext = () => {
+    const todayMeals = getTodayMeals();
+    const todayCalories = todayMeals.reduce((sum, meal) => sum + meal.actualCalories, 0);
+    const remainingCalories = weightLossProfile ? weightLossProfile.dailyCalorieTarget - todayCalories : 0;
+    
+    updateAIContext({
+      profile: weightLossProfile,
+      todayCalories,
+      targetCalories: weightLossProfile?.dailyCalorieTarget || 2000,
+      remainingCalories,
+      todayMeals,
+      recentFoods: todayMeals.flatMap(meal => meal.foodsConsumed.map(food => food.name)),
+      dietaryPreferences: weightLossProfile?.dietaryPreferences,
+      weightProgress: [],
+      exerciseHistory: [],
+      behaviorPatterns: {}
+    });
+  };
+
+  const getTodayMeals = () => {
+    const today = new Date().toDateString();
+    return mealLogs.filter(meal => 
+      new Date(meal.loggedDate).toDateString() === today
+    );
+  };
 
   const initializeConversation = () => {
     const welcomeMessage = getWelcomeMessage();
@@ -82,11 +109,12 @@ export const GoalSpecificAIAssistant: React.FC<GoalSpecificAIAssistantProps> = (
   };
 
   const getWelcomeMessage = () => {
-    const todayData = getTodayData();
+    const todayMeals = getTodayMeals();
+    const todayCalories = todayMeals.reduce((sum, meal) => sum + meal.actualCalories, 0);
     
     switch (goalType) {
       case 'weight_loss':
-        const remainingCals = weightLossProfile ? weightLossProfile.dailyCalorieTarget - getTodayCalories() : 0;
+        const remainingCals = weightLossProfile ? weightLossProfile.dailyCalorieTarget - todayCalories : 0;
         return {
           content: `Hi! I'm your weight loss coach. You have ${remainingCals} calories remaining today. How can I help you stay on track with your nutrition goals?`,
           suggestions: ["I'm craving something sweet", "What should I eat for dinner?", "I went over my calories", "Suggest a healthy snack"],
@@ -102,7 +130,7 @@ export const GoalSpecificAIAssistant: React.FC<GoalSpecificAIAssistantProps> = (
         };
       
       case 'strength_building':
-        const todayVolume = todayData.totalVolume || 0;
+        const todayVolume = 0; // Would get from strength store
         return {
           content: `Hi! I'm your strength coach. You've lifted ${Math.round(todayVolume)}kg total volume today. Let's build some serious strength!`,
           suggestions: ["My muscles are sore", "How much weight should I lift?", "Best exercises for beginners", "Check my progress"],
@@ -128,7 +156,7 @@ export const GoalSpecificAIAssistant: React.FC<GoalSpecificAIAssistantProps> = (
         };
       
       case 'workout_consistency':
-        const streak = todayData.currentStreak || 0;
+        const streak = 0; // Would calculate from logs
         return {
           content: `Hi! I'm your consistency coach. You're on a ${streak}-day workout streak! Let's keep building that amazing habit.`,
           suggestions: ["I want to skip today", "Need motivation", "Quick workout ideas", "Check my streak"],
@@ -141,70 +169,6 @@ export const GoalSpecificAIAssistant: React.FC<GoalSpecificAIAssistantProps> = (
           suggestions: ["Get started", "Check progress", "Need motivation"],
           tip: "Every day is a new opportunity to grow stronger!"
         };
-    }
-  };
-
-  const getTodayData = () => {
-    switch (goalType) {
-      case 'weight_loss':
-        return {
-          calories: getTodayCalories(),
-          remainingCalories: weightLossProfile ? weightLossProfile.dailyCalorieTarget - getTodayCalories() : 0,
-          mealsLogged: getTodayMeals().length
-        };
-      
-      case 'cardio_endurance':
-        const weeklyStats = cardioProfile ? getWeeklyStats() : { totalDuration: 0, totalCalories: 0, sessionsCount: 0 };
-        return {
-          sessionsCount: cardioProfile ? getTodaySessions().length : 0,
-          totalDuration: weeklyStats.totalDuration,
-          totalCalories: weeklyStats.totalCalories
-        };
-      
-      case 'strength_building':
-        return {
-          totalSessions: 0, // Would get from strength store
-          totalVolume: 0,   // Would get from strength store
-          personalRecords: 0
-        };
-      
-      case 'daily_steps':
-        const currentSteps = stepsProfile ? getTodaySteps() : 0;
-        return {
-          currentSteps,
-          remainingSteps: stepsProfile ? Math.max(stepsProfile.dailyStepTarget - currentSteps, 0) : 10000,
-          distance: stepsProfile ? (currentSteps * stepsProfile.strideLength) / 100000 : 0
-        };
-      
-      case 'sleep_tracking':
-        const lastSleep = sleepProfile ? getLastNightSleep() : null;
-        return {
-          lastNightSleep: lastSleep ? Math.round(lastSleep.totalSleepTime / 60 * 10) / 10 : 0,
-          sleepScore: lastSleep?.sleepScore || 0,
-          weeklyAverage: sleepProfile ? getWeeklyAverage() : 0
-        };
-      
-      case 'workout_consistency':
-        return {
-          currentStreak: 0, // Would calculate from logs
-          weeklyWorkouts: 0,
-          targetFrequency: 5
-        };
-      
-      default:
-        return {};
-    }
-  };
-
-  const getProfile = () => {
-    switch (goalType) {
-      case 'weight_loss': return weightLossProfile;
-      case 'cardio_endurance': return cardioProfile;
-      case 'strength_building': return strengthProfile;
-      case 'daily_steps': return stepsProfile;
-      case 'sleep_tracking': return sleepProfile;
-      case 'workout_consistency': return null; // No specific profile
-      default: return null;
     }
   };
 
@@ -234,16 +198,10 @@ export const GoalSpecificAIAssistant: React.FC<GoalSpecificAIAssistantProps> = (
     // Get AI response
     setTimeout(async () => {
       try {
-        const response = await goalSpecificAI.handleGoalSpecificQuery({
-          goalType,
-          userMessage: message,
-          profile: getProfile(),
-          todayData: getTodayData(),
-          conversationHistory: messages.map(m => ({
-            role: m.role,
-            content: m.content
-          }))
-        });
+        // Update context before sending message
+        updateUserContext();
+        
+        const response = await sendAIMessage('current-user', message);
 
         const aiResponse: Message = {
           id: (Date.now() + 1).toString(),
@@ -265,7 +223,7 @@ export const GoalSpecificAIAssistant: React.FC<GoalSpecificAIAssistantProps> = (
         const errorResponse: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: "I'm having trouble connecting right now, but I'm still here to help! What would you like to know about your fitness goals?",
+          content: "I'm having trouble connecting right now, but I'm still here to help! What would you like to know about your weight management goals?",
           timestamp: new Date()
         };
         setMessages(prev => [...prev, errorResponse]);

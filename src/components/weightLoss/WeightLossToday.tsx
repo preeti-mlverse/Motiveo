@@ -7,6 +7,7 @@ import { WeightLossProfile, MealLog } from '../../types/weightLoss';
 import { CalorieCalculator } from '../../utils/calorieCalculator';
 import { MealSuggestionEngine } from '../../utils/mealSuggestions';
 import { SupabaseService } from '../../services/supabaseService';
+import { updateAIContext } from '../../services/aiAssistantService';
 
 interface WeightLossTodayProps {
   profile: WeightLossProfile;
@@ -130,6 +131,14 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
         const updated = [...prev, savedMeal];
         console.log('🔄 Updated today meals state:', updated.length, 'meals');
         return updated;
+      });
+      
+      // Update AI context with new meal data
+      updateAIContext({
+        todayMeals: [...todayMeals, savedMeal],
+        todayCalories: totalCalories + savedMeal.actualCalories,
+        remainingCalories: profile.dailyCalorieTarget - (totalCalories + savedMeal.actualCalories),
+        recentFoods: [...todayMeals, savedMeal].flatMap(meal => meal.foodsConsumed.map(food => food.name))
       });
       
       // Call parent handler
