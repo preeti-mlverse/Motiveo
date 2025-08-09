@@ -436,11 +436,4 @@ What specific aspect of your sleep would you like to improve?`;
       </div>
     </div>
   );
-
-  function handleActionClick(action: string) {
-    if (onActionSuggested) {
-      onActionSuggested(action);
-    }
-    handleSendMessage(`Help me with: ${action}`);
-  }
 };
