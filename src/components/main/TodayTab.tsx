@@ -91,18 +91,10 @@ export const TodayTab: React.FC = () => {
   });
 
   const handleMealLogged = (meal: MealLog) => {
-    console.log('📝 TodayTab: Handling meal log:', meal);
-    
-    // Add to weight loss store
-    const { addMealLog } = useWeightLossStore.getState();
-    addMealLog(meal);
-    
-    console.log('✅ TodayTab: Meal logged to store');
-    
-    // Force re-render to update calorie displays
-    setTimeout(() => {
-      window.dispatchEvent(new Event('mealLogged'));
-    }, 100);
+    console.log('📝 TodayTab: Meal logged, triggering refresh');
+    // The WeightLossToday component handles Supabase saving
+    // Just trigger a refresh event
+    window.dispatchEvent(new Event('mealLogged'));
   };
 
   const handleWeightLogged = (weight: number) => {

@@ -40,35 +40,9 @@ export const useWeightLossStore = create<WeightLossState>()(
       setProfile: (profile) => set({ profile }),
       
       addMealLog: (meal) => set((state) => {
-        console.log('🏪 Store: Adding meal log:', {
-          id: meal.id,
-          mealType: meal.mealType,
-          calories: meal.actualCalories,
-          foodsCount: meal.foodsConsumed.length,
-          loggedDate: meal.loggedDate
-        });
-        
-        // Ensure the meal has today's date for proper filtering
-        const todayMeal = {
-          ...meal,
-          loggedDate: new Date(), // Ensure it's today's date
-          createdAt: new Date()
-        };
-        
-        const newMealLogs = [...state.mealLogs, todayMeal];
-        console.log('🏪 Store: New total meal logs:', newMealLogs.length);
-        
-        // Immediately verify today's meals after adding
-        const today = new Date().toDateString();
-        const todayMealsAfterAdd = newMealLogs.filter(m => {
-          const mealDate = new Date(m.loggedDate).toDateString();
-          console.log('🏪 Store: Checking meal date:', mealDate, 'vs today:', today);
-          return mealDate === today;
-        });
-        console.log('🏪 Store: Today meals after add:', todayMealsAfterAdd.length);
-        
+        console.log('🏪 Store: Adding meal log to local store:', meal.id);
         return {
-          mealLogs: newMealLogs
+          mealLogs: [...state.mealLogs, meal]
         };
       }),
       

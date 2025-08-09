@@ -207,18 +207,9 @@ export const MealLogging: React.FC<MealLoggingProps> = ({
     };
 
     console.log('💾 MealLogging: Final meal object:', meal);
-    console.log('💾 MealLogging: Meal calories breakdown:', {
-      plannedCalories: meal.plannedCalories,
-      actualCalories: meal.actualCalories,
-      foodsCount: meal.foodsConsumed.length,
-      foodsCalories: meal.foodsConsumed.map(f => ({ name: f.name, calories: f.calories }))
-    });
     
     // Call the parent handler to save the meal
     onMealLogged(meal);
-    
-    // Close the modal after successful save
-    onClose();
   };
 
   const getMealIcon = () => {

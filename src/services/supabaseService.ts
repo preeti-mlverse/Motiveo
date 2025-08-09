@@ -259,6 +259,7 @@ export class SupabaseService {
     const user = await this.getCurrentUser();
     if (!user) throw new Error('User not authenticated');
 
+    console.log('💾 SupabaseService: Creating meal log:', meal);
     const { data, error } = await supabase
       .from('meal_logs')
       .insert({
@@ -276,13 +277,17 @@ export class SupabaseService {
       .single();
 
     if (error) throw error;
-    return this.mapMealLog(data);
+    
+    const mappedMeal = this.mapMealLog(data);
+    console.log('✅ SupabaseService: Meal log created:', mappedMeal);
+    return mappedMeal;
   }
 
   static async getMealLogs(): Promise<MealLog[]> {
     const user = await this.getCurrentUser();
     if (!user) return [];
 
+    console.log('📊 SupabaseService: Fetching meal logs for user:', user.id);
     const { data, error } = await supabase
       .from('meal_logs')
       .select('*')
@@ -290,7 +295,10 @@ export class SupabaseService {
       .order('logged_date', { ascending: false });
 
     if (error) throw error;
-    return data.map(this.mapMealLog);
+    
+    const mappedMeals = data.map(this.mapMealLog);
+    console.log('📊 SupabaseService: Fetched meal logs:', mappedMeals.length);
+    return mappedMeals;
   }
 
   // Weight Entries

@@ -1,13 +1,12 @@
-import React, { useState, useReducer, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Utensils, Activity, Droplets, Scale, TrendingDown, MessageCircle, Zap, Target } from 'lucide-react';
 import { CalorieRing } from './CalorieRing';
 import { MealLogging } from './MealLogging';
-import { ConversationalAI } from './ConversationalAI';
 import { ExerciseLogging } from './ExerciseLogging';
-import { useWeightLossStore } from '../../store/useWeightLossStore';
 import { WeightLossProfile, MealLog } from '../../types/weightLoss';
 import { CalorieCalculator } from '../../utils/calorieCalculator';
 import { MealSuggestionEngine } from '../../utils/mealSuggestions';
+import { SupabaseService } from '../../services/supabaseService';
 
 interface WeightLossTodayProps {
   profile: WeightLossProfile;
@@ -18,7 +17,7 @@ interface WeightLossTodayProps {
 
 export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
   profile,
-  mealLogs,
+  mealLogs: propMealLogs,
   onMealLogged,
   onWeightLogged
 }) => {
@@ -29,79 +28,72 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
   const [waterIntake, setWaterIntake] = useState(0);
   const [showWeightInput, setShowWeightInput] = useState(false);
   const [weightInput, setWeightInput] = useState('');
-  const [showAIChat, setShowAIChat] = useState(false);
   const [showExerciseLogging, setShowExerciseLogging] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  
-  // Force re-render hook
-  const [, forceUpdate] = useReducer(x => x + 1, 0);
-  
-  // Listen for meal logged events to refresh data
+  const [todayMeals, setTodayMeals] = useState<MealLog[]>([]);
+  const [todayExercises, setTodayExercises] = useState<any[]>([]);
+  const [todayWeightEntry, setTodayWeightEntry] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Load today's data from Supabase
   useEffect(() => {
-    const handleMealLoggedEvent = () => {
-      console.log('🔄 WeightLossToday: Refreshing data after meal logged');
-      setRefreshKey(prev => prev + 1);
-      forceUpdate();
-    };
-    
-    window.addEventListener('mealLogged', handleMealLoggedEvent);
-    return () => window.removeEventListener('mealLogged', handleMealLoggedEvent);
+    loadTodayData();
   }, []);
-  
-  // Get today's exercise and weight data
-  const { exerciseLogs, weightEntries } = useWeightLossStore();
-  const todayExercises = exerciseLogs.filter(exercise => {
-    const exerciseDate = new Date(exercise.loggedDate);
-    const todayDate = new Date();
-    return exerciseDate.toDateString() === todayDate.toDateString();
-  });
-  
-  const todayWeightEntry = weightEntries.find(entry => {
-    const entryDate = new Date(entry.date);
-    const todayDate = new Date();
-    return entryDate.toDateString() === todayDate.toDateString();
-  });
-  
-  const totalCaloriesBurned = todayExercises.reduce((sum, exercise) => sum + exercise.caloriesBurned, 0);
 
-  // Calculate today's totals
-  const today = new Date().toDateString();
-  
-  // Get fresh data from store each render using the hook
-  const { getTodayMeals, getTodayCalories } = useWeightLossStore();
-  const todayMeals = getTodayMeals();
-  const storeCalories = getTodayCalories();
+  const loadTodayData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load meal logs
+      const meals = await SupabaseService.getMealLogs();
+      const today = new Date().toDateString();
+      const todayMealLogs = meals.filter(meal => 
+        new Date(meal.loggedDate).toDateString() === today
+      );
+      setTodayMeals(todayMealLogs);
+      
+      // Load weight entries
+      const weightEntries = await SupabaseService.getWeightEntries();
+      const todayWeight = weightEntries.find(entry =>
+        new Date(entry.date).toDateString() === today
+      );
+      setTodayWeightEntry(todayWeight);
+      
+      console.log('📊 Loaded today\'s data:', {
+        meals: todayMealLogs.length,
+        totalCalories: todayMealLogs.reduce((sum, meal) => sum + meal.actualCalories, 0),
+        weightEntry: !!todayWeight
+      });
+      
+    } catch (error) {
+      console.error('Failed to load today\'s data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Use store calories for accurate count and log for debugging
-  const totalCalories = storeCalories;
-  console.log('🔥 WeightLossToday: Current calories from store:', totalCalories, 'from', todayMeals.length, 'meals');
-  
+  // Calculate totals from loaded data
+  const totalCalories = todayMeals.reduce((sum, meal) => sum + meal.actualCalories, 0);
   const totalProtein = todayMeals.reduce((sum, meal) => 
     sum + meal.foodsConsumed.reduce((mealSum, food) => mealSum + food.protein, 0), 0
   );
-  
-  // Calculate net calories (consumed - burned)
+  const totalCaloriesBurned = todayExercises.reduce((sum, exercise) => sum + exercise.caloriesBurned, 0);
   const netCalories = Math.max(totalCalories - totalCaloriesBurned, 0);
   const remainingCalories = Math.max(profile.dailyCalorieTarget - netCalories, 0);
 
   const mealDistribution = CalorieCalculator.distributeMealCalories(profile.dailyCalorieTarget);
 
-  // Calculate meal calories for each type directly using todayMeals
   const getMealCalories = (mealType: string) => {
-    const mealTypeCalories = todayMeals
+    return todayMeals
       .filter(meal => meal.mealType === mealType)
       .reduce((sum, meal) => sum + meal.actualCalories, 0);
-    
-    console.log(`🍽️ getMealCalories for ${mealType}:`, mealTypeCalories);
-    return mealTypeCalories;
   };
 
-  const getMealSuggestion = (mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack', todayMealsData: MealLog[]) => {
+  const getMealSuggestion = (mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack') => {
     const targetCalories = mealDistribution[mealType];
     const currentCalories = getMealCalories(mealType);
     
     if (currentCalories === 0) {
-      const recentMeals = todayMealsData.map(meal => meal.id);
+      const recentMeals = todayMeals.map(meal => meal.id);
       return MealSuggestionEngine.generatePersonalizedSuggestion(
         mealType,
         targetCalories,
@@ -113,29 +105,56 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
     return null;
   };
 
-  const handleMealLogged = (meal: MealLog) => {
-    console.log('🍽️ WeightLossToday: Received meal log:', meal);
-    
-    // Add to store first
-    const { addMealLog } = useWeightLossStore.getState();
-    addMealLog(meal);
-    
-    // Call parent handler
-    onMealLogged(meal);
-    
-    // Force immediate re-render and close modal
-    forceUpdate();
-    setRefreshKey(prev => prev + 1);
-    setShowMealLogging({ show: false, mealType: 'breakfast' });
-    
-    console.log('✅ WeightLossToday: Meal logged successfully');
+  const handleMealLogged = async (meal: MealLog) => {
+    try {
+      console.log('💾 Saving meal to Supabase:', meal);
+      
+      // Save to Supabase
+      const savedMeal = await SupabaseService.createMealLog(meal);
+      console.log('✅ Meal saved to Supabase:', savedMeal);
+      
+      // Update local state
+      setTodayMeals(prev => [...prev, savedMeal]);
+      
+      // Call parent handler
+      onMealLogged(savedMeal);
+      
+      // Close modal
+      setShowMealLogging({ show: false, mealType: 'breakfast' });
+      
+      console.log('🔄 Meal logging complete');
+      
+    } catch (error) {
+      console.error('❌ Failed to save meal:', error);
+      // Still update local state as fallback
+      setTodayMeals(prev => [...prev, meal]);
+      onMealLogged(meal);
+      setShowMealLogging({ show: false, mealType: 'breakfast' });
+    }
   };
   
-  const handleWeightLog = () => {
+  const handleWeightLog = async () => {
     if (weightInput) {
-      onWeightLogged(parseFloat(weightInput));
-      setWeightInput('');
-      setShowWeightInput(false);
+      try {
+        const weightEntry = {
+          goalId: profile.goalId,
+          weight: parseFloat(weightInput),
+          date: new Date()
+        };
+        
+        const savedEntry = await SupabaseService.createWeightEntry(weightEntry);
+        setTodayWeightEntry(savedEntry);
+        onWeightLogged(parseFloat(weightInput));
+        
+        setWeightInput('');
+        setShowWeightInput(false);
+      } catch (error) {
+        console.error('Failed to save weight:', error);
+        // Fallback to local handling
+        onWeightLogged(parseFloat(weightInput));
+        setWeightInput('');
+        setShowWeightInput(false);
+      }
     }
   };
 
@@ -144,10 +163,8 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
   };
 
   const handleExerciseLogged = (exercise: any) => {
-    const { addExerciseLog } = useWeightLossStore.getState();
-    addExerciseLog(exercise);
+    setTodayExercises(prev => [...prev, exercise]);
     console.log('✅ WeightLossToday: Exercise logged successfully:', exercise);
-    forceUpdate();
     setShowExerciseLogging(false);
   };
   
@@ -157,6 +174,16 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
     { type: 'dinner' as const, icon: '🌙', name: 'Dinner', target: mealDistribution.dinner },
     { type: 'snack' as const, icon: '🍎', name: 'Snack', target: mealDistribution.snack }
   ];
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="w-8 h-8 border-2 border-[#F08A3E] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -214,7 +241,7 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
           const currentCalories = getMealCalories(meal.type);
           const progress = (currentCalories / meal.target) * 100;
           const todayMealsForType = todayMeals.filter(mealLog => mealLog.mealType === meal.type);
-          const suggestion = getMealSuggestion(meal.type, todayMeals);
+          const suggestion = getMealSuggestion(meal.type);
 
           return (
             <div key={meal.type} className="bg-[#161B22] rounded-2xl p-6 border border-[#2B3440]">
@@ -370,7 +397,7 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
                   </div>
                 </div>
                 <div className="text-xs text-[#6BD0D2]">
-                  {new Date(todayWeightEntry.createdAt).toLocaleTimeString('en', { 
+                  {new Date(todayWeightEntry.date).toLocaleTimeString('en', { 
                     hour: '2-digit', 
                     minute: '2-digit' 
                   })}
@@ -469,7 +496,6 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
           
           <button
             onClick={() => {
-              // Use the new goal-specific AI instead
               const event = new CustomEvent('openGoalAI', { 
                 detail: { goalType: 'weight_loss' } 
               });
@@ -491,34 +517,7 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
           currentCalories={getMealCalories(showMealLogging.mealType)}
           onMealLogged={handleMealLogged}
           onClose={() => setShowMealLogging({ show: false, mealType: 'breakfast' })}
-          key={`${showMealLogging.mealType}-${refreshKey}`}
         />
-      )}
-
-      {/* AI Chat Modal */}
-      {showAIChat && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-[#161B22] rounded-2xl border border-[#2B3440] w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-[#F3F4F6]">Weight Loss Coach</h3>
-              <button
-                onClick={() => setShowAIChat(false)}
-                className="w-8 h-8 bg-[#2B3440] hover:bg-[#0D1117] rounded-lg flex items-center justify-center text-[#CBD5E1] transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-[#CBD5E1] mb-4">
-              Use the floating AI assistant for specialized weight loss coaching with advanced features!
-            </p>
-            <button 
-              onClick={() => setShowAIChat(false)}
-              className="w-full bg-[#F08A3E] text-white py-2 rounded-lg"
-            >
-              Got it
-            </button>
-          </div>
-        </div>
       )}
 
       {/* Exercise Logging Modal */}
