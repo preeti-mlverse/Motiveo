@@ -4,6 +4,7 @@ import { SleepProfile, SleepEntry } from '../../types/sleep';
 import { SleepLoggingModal } from './SleepLoggingModal';
 import { SleepScoreRing } from './SleepScoreRing';
 import { SleepStageChart } from './SleepStageChart';
+import { SleepAIAssistant } from './SleepAIAssistant';
 
 interface SleepTodayProps {
   profile: SleepProfile;
@@ -19,6 +20,7 @@ export const SleepToday: React.FC<SleepTodayProps> = ({
   const [lastNightSleep, setLastNightSleep] = useState<SleepEntry | null>(null);
   const [sleepStreak, setSleepStreak] = useState(0);
   const [weeklyAverage, setWeeklyAverage] = useState(0);
+  const [showSleepAI, setShowSleepAI] = useState(false);
 
   // Update current time every minute
   useEffect(() => {
@@ -286,15 +288,12 @@ export const SleepToday: React.FC<SleepTodayProps> = ({
         
         <button
           onClick={() => {
-            const event = new CustomEvent('openGoalAI', { 
-              detail: { goalType: 'sleep_tracking' } 
-            });
-            window.dispatchEvent(event);
+            setShowSleepAI(true);
           }}
           className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white py-3 px-4 rounded-xl font-medium transition-colors flex items-center justify-center space-x-2"
         >
           <MessageCircle className="w-4 h-4" />
-          <span>Ask Sleep Coach</span>
+          <span>Sleep Optimization Crew</span>
           <Sparkles className="w-4 h-4" />
         </button>
       </div>
@@ -305,6 +304,29 @@ export const SleepToday: React.FC<SleepTodayProps> = ({
           profile={profile}
           onSleepLogged={handleSleepLogged}
           onClose={() => setShowSleepLogging(false)}
+        />
+      )}
+
+      {/* Sleep AI Assistant */}
+      {showSleepAI && (
+        <SleepAIAssistant
+          profile={profile}
+          sleepData={{
+            lastNightSleep: lastNightSleep ? Math.floor(lastNightSleep.totalSleepTime / 60) : 0,
+            sleepScore: lastNightSleep?.sleepScore || 0,
+            sleepEfficiency: lastNightSleep?.sleepEfficiency || 0,
+            wakeUps: lastNightSleep?.wakeUps || 0,
+            sleepStreak,
+            weeklyAverage
+          }}
+          onClose={() => setShowSleepAI(false)}
+          onActionSuggested={(action, data) => {
+            console.log('Sleep action suggested:', action, data);
+            // Handle specific sleep actions
+            if (action.includes('Log') || action.includes('log')) {
+              setShowSleepLogging(true);
+            }
+          }}
         />
       )}
     </div>

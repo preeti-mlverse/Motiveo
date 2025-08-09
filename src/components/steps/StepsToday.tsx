@@ -4,6 +4,7 @@ import { StepsProfile, StepsEntry, StepsChallenge } from '../../types/steps';
 import { StepsLoggingModal } from './StepsLoggingModal';
 import { StepsRing } from './StepsRing';
 import { StepsHourlyChart } from './StepsHourlyChart';
+import { StepsAIAssistant } from './StepsAIAssistant';
 
 interface StepsTodayProps {
   profile: StepsProfile;
@@ -22,6 +23,7 @@ export const StepsToday: React.FC<StepsTodayProps> = ({
   const [weeklyAverage, setWeeklyAverage] = useState(0);
   const [todayChallenges, setTodayChallenges] = useState<StepsChallenge[]>([]);
   const [hourlySteps, setHourlySteps] = useState<number[]>([]);
+  const [showStepsAI, setShowStepsAI] = useState(false);
 
   // Simulate step tracking
   useEffect(() => {
@@ -343,15 +345,12 @@ export const StepsToday: React.FC<StepsTodayProps> = ({
         
         <button
           onClick={() => {
-            const event = new CustomEvent('openGoalAI', { 
-              detail: { goalType: 'daily_steps' } 
-            });
-            window.dispatchEvent(event);
+            setShowStepsAI(true);
           }}
           className="w-full bg-[#10B981] hover:bg-[#059669] text-white py-3 px-4 rounded-xl font-medium transition-colors flex items-center justify-center space-x-2"
         >
           <MessageCircle className="w-4 h-4" />
-          <span>Ask Walking Coach</span>
+          <span>Movement Optimization Crew</span>
           <Sparkles className="w-4 h-4" />
         </button>
       </div>
@@ -362,6 +361,32 @@ export const StepsToday: React.FC<StepsTodayProps> = ({
           profile={profile}
           onStepsLogged={handleStepsLogged}
           onClose={() => setShowStepsLogging(false)}
+        />
+      )}
+
+      {/* Steps AI Assistant */}
+      {showStepsAI && (
+        <StepsAIAssistant
+          profile={profile}
+          stepsData={{
+            currentSteps,
+            remainingSteps: Math.max(profile.dailyStepTarget - currentSteps, 0),
+            distance: todayDistance,
+            caloriesBurned: todayCalories,
+            stepStreak,
+            weeklyAverage
+          }}
+          onClose={() => setShowStepsAI(false)}
+          onActionSuggested={(action, data) => {
+            console.log('Steps action suggested:', action, data);
+            // Handle specific step actions
+            if (action.includes('walk') || action.includes('Walk')) {
+              startQuickWalk();
+            }
+            if (action.includes('Log') || action.includes('log')) {
+              setShowStepsLogging(true);
+            }
+          }}
         />
       )}
     </div>
