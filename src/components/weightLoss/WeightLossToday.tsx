@@ -72,7 +72,16 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
   };
 
   // Calculate totals from loaded data
-  const totalCalories = todayMeals.reduce((sum, meal) => sum + meal.actualCalories, 0);
+  const totalCalories = React.useMemo(() => {
+    const total = todayMeals.reduce((sum, meal) => sum + meal.actualCalories, 0);
+    console.log('🔥 Calculating total calories:', {
+      mealsCount: todayMeals.length,
+      totalCalories: total,
+      meals: todayMeals.map(m => ({ type: m.mealType, calories: m.actualCalories }))
+    });
+    return total;
+  }, [todayMeals]);
+  
   const totalProtein = todayMeals.reduce((sum, meal) => 
     sum + meal.foodsConsumed.reduce((mealSum, food) => mealSum + food.protein, 0), 0
   );
@@ -83,9 +92,12 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
   const mealDistribution = CalorieCalculator.distributeMealCalories(profile.dailyCalorieTarget);
 
   const getMealCalories = (mealType: string) => {
-    return todayMeals
+    const mealCalories = todayMeals
       .filter(meal => meal.mealType === mealType)
       .reduce((sum, meal) => sum + meal.actualCalories, 0);
+    
+    console.log(`🍽️ ${mealType} calories:`, mealCalories, 'from', todayMeals.filter(meal => meal.mealType === mealType).length, 'meals');
+    return mealCalories;
   };
 
   const getMealSuggestion = (mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack') => {
@@ -113,24 +125,35 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
       const savedMeal = await SupabaseService.createMealLog(meal);
       console.log('✅ Meal saved to Supabase:', savedMeal);
       
-      // Update local state
-      setTodayMeals(prev => [...prev, savedMeal]);
+      // Update local state and force re-render
+      setTodayMeals(prev => {
+        const updated = [...prev, savedMeal];
+        console.log('🔄 Updated today meals state:', updated.length, 'meals');
+        return updated;
+      });
       
       // Call parent handler
       onMealLogged(savedMeal);
       
-      // Close modal
-      setShowMealLogging({ show: false, mealType: 'breakfast' });
+      // Force component re-render by updating a state value
+      setLoading(false);
+      setTimeout(() => setLoading(false), 100);
       
       console.log('🔄 Meal logging complete');
       
     } catch (error) {
       console.error('❌ Failed to save meal:', error);
       // Still update local state as fallback
-      setTodayMeals(prev => [...prev, meal]);
+      setTodayMeals(prev => {
+        const updated = [...prev, meal];
+        console.log('🔄 Fallback: Updated today meals state:', updated.length, 'meals');
+        return updated;
+      });
       onMealLogged(meal);
-      setShowMealLogging({ show: false, mealType: 'breakfast' });
     }
+    
+    // Close modal after successful save
+    setShowMealLogging({ show: false, mealType: 'breakfast' });
   };
   
   const handleWeightLog = async () => {

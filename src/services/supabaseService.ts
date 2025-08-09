@@ -260,11 +260,29 @@ export class SupabaseService {
     if (!user) throw new Error('User not authenticated');
 
     console.log('💾 SupabaseService: Creating meal log:', meal);
+    
+    // Ensure we have a valid goal_id
+    let goalId = meal.goalId;
+    if (goalId === 'weight-loss-goal') {
+      // Find the actual weight loss goal ID
+      const { data: goals } = await supabase
+        .from('goals')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('type', 'weight_loss')
+        .eq('is_active', true)
+        .limit(1);
+      
+      if (goals && goals.length > 0) {
+        goalId = goals[0].id;
+      }
+    }
+    
     const { data, error } = await supabase
       .from('meal_logs')
       .insert({
         user_id: user.id,
-        goal_id: meal.goalId,
+        goal_id: goalId,
         meal_type: meal.mealType,
         logged_date: meal.loggedDate.toISOString().split('T')[0],
         planned_calories: meal.plannedCalories,

@@ -212,6 +212,9 @@ export const MealLogging: React.FC<MealLoggingProps> = ({
     onMealLogged(meal);
   };
 
+  const handleSave = () => {
+    handleSaveMeal();
+  };
   const getMealIcon = () => {
     switch (mealType) {
       case 'breakfast': return '🌅';
@@ -464,7 +467,7 @@ export const MealLogging: React.FC<MealLoggingProps> = ({
               Cancel
             </button>
             <button
-              onClick={handleSaveMeal}
+              onClick={handleSave}
               disabled={loggedFoods.length === 0}
               className="flex-1 bg-[#F08A3E] hover:bg-[#E17226] disabled:bg-[#2B3440] disabled:text-[#CBD5E1] disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg transform hover:scale-105 active:scale-95"
             >
