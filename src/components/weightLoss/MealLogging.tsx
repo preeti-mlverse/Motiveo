@@ -215,6 +215,7 @@ export const MealLogging: React.FC<MealLoggingProps> = ({
   const handleSave = () => {
     handleSaveMeal();
   };
+
   const getMealIcon = () => {
     switch (mealType) {
       case 'breakfast': return '🌅';
@@ -233,9 +234,9 @@ export const MealLogging: React.FC<MealLoggingProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-[#161B22] rounded-2xl border border-[#2B3440] w-full max-w-md max-h-[90vh] overflow-hidden">
+      <div className="bg-[#161B22] rounded-2xl border border-[#2B3440] w-full max-w-md max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-[#2B3440]">
+        <div className="p-6 border-b border-[#2B3440] flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-[#F08A3E] rounded-xl flex items-center justify-center">
@@ -272,7 +273,7 @@ export const MealLogging: React.FC<MealLoggingProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
+        <div className="p-6 overflow-y-auto flex-1">
           {/* Voice Input */}
           <div className="mb-6">
             <VoiceInput
@@ -445,7 +446,7 @@ export const MealLogging: React.FC<MealLoggingProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-[#2B3440]">
+        <div className="p-6 border-t border-[#2B3440] flex-shrink-0">
           {/* Summary before save */}
           {loggedFoods.length > 0 && (
             <div className="mb-4 p-3 bg-[#0D1117] rounded-xl">
@@ -467,11 +468,13 @@ export const MealLogging: React.FC<MealLoggingProps> = ({
               Cancel
             </button>
             <button
-              onClick={handleSave}
+              onClick={handleSaveMeal}
               disabled={loggedFoods.length === 0}
-              className="flex-1 bg-[#F08A3E] hover:bg-[#E17226] disabled:bg-[#2B3440] disabled:text-[#CBD5E1] disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg transform hover:scale-105 active:scale-95"
+              className="flex-1 bg-[#F08A3E] hover:bg-[#E17226] disabled:bg-[#2B3440] disabled:text-[#CBD5E1] disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2"
             >
-              <span>{loggedFoods.length === 0 ? 'Add Foods First' : `Save ${mealType.charAt(0).toUpperCase() + mealType.slice(1)}`}</span>
+              <span>
+                {loggedFoods.length === 0 ? 'Add Foods First' : `Save ${mealType.charAt(0).toUpperCase() + mealType.slice(1)}`}
+              </span>
               {totalCalories > 0 && (
                 <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
                   {totalCalories} cal
