@@ -190,6 +190,15 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
         setShowWeightInput(false);
       } catch (error) {
         console.error('Failed to save weight:', error);
+        
+        // Handle authentication errors specifically
+        if (error instanceof Error && error.message === 'User not authenticated') {
+          alert('Your session has expired. Please sign in again.');
+          await SupabaseService.signOut();
+          window.location.reload();
+          return;
+        }
+        
         // Fallback to local handling
         onWeightLogged(parseFloat(weightInput));
         setWeightInput('');
