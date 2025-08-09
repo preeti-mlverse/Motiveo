@@ -46,12 +46,12 @@ export class AIAssistantService {
   constructor() {
     this.apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
     this.baseUrl = 'https://api.openai.com/v1';
-    this.model = 'gpt-4o-mini';
+    this.model = 'gpt-5-mini';
     
     if (!this.apiKey || this.apiKey === 'your_openai_api_key_here') {
-      console.warn('⚠️ OpenAI API key not configured - AI assistant will use fallback responses');
+      console.warn('⚠️ OpenAI API key not configured - AI assistant will use fallback responses. Please set VITE_OPENAI_API_KEY in your .env file');
     } else {
-      console.log('✅ AI Assistant configured with OpenAI GPT-4o-mini');
+      console.log('✅ AI Assistant configured with OpenAI GPT-5-mini');
     }
   }
 

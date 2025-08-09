@@ -44,7 +44,7 @@ export class AIService {
     this.config = {
       apiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
       baseUrl: 'https://api.openai.com/v1',
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-5-mini',
       ...config
     };
     this.isConfigured = !!(this.config.apiKey && 
