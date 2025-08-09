@@ -86,11 +86,9 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
 
   const mealDistribution = CalorieCalculator.distributeMealCalories(profile.dailyCalorieTarget);
 
+  // Calculate meal calories for each type directly using todayMeals
   const getMealCalories = (mealType: string) => {
-    // Get fresh data from store for this specific meal type using the hook
-    const { getTodayMeals } = useWeightLossStore();
-    const currentTodayMeals = getTodayMeals();
-    const mealTypeCalories = currentTodayMeals
+    const mealTypeCalories = todayMeals
       .filter(meal => meal.mealType === mealType)
       .reduce((sum, meal) => sum + meal.actualCalories, 0);
     
@@ -98,12 +96,12 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
     return mealTypeCalories;
   };
 
-  const getMealSuggestion = (mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack') => {
+  const getMealSuggestion = (mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack', todayMealsData: MealLog[]) => {
     const targetCalories = mealDistribution[mealType];
     const currentCalories = getMealCalories(mealType);
     
     if (currentCalories === 0) {
-      const recentMeals = todayMeals.map(meal => meal.id);
+      const recentMeals = todayMealsData.map(meal => meal.id);
       return MealSuggestionEngine.generatePersonalizedSuggestion(
         mealType,
         targetCalories,
@@ -216,7 +214,7 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
           const currentCalories = getMealCalories(meal.type);
           const progress = (currentCalories / meal.target) * 100;
           const todayMealsForType = todayMeals.filter(mealLog => mealLog.mealType === meal.type);
-          const suggestion = getMealSuggestion(meal.type);
+          const suggestion = getMealSuggestion(meal.type, todayMeals);
 
           return (
             <div key={meal.type} className="bg-[#161B22] rounded-2xl p-6 border border-[#2B3440]">
