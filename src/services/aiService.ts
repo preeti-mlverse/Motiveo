@@ -72,6 +72,7 @@ export class AIService {
   // Generate meal suggestions using AI
   async generateMealSuggestions(request: MealSuggestionRequest): Promise<any[]> {
     if (!this.isReady()) {
+      console.log('🤖 AI not configured, using fallback meal suggestions');
       return this.getFallbackMealSuggestions(request);
     }
 
@@ -81,6 +82,7 @@ export class AIService {
       return this.parseMealSuggestions(response);
     } catch (error) {
       console.error('AI meal suggestion failed:', error);
+      console.log('🤖 Falling back to static meal suggestions');
       return this.getFallbackMealSuggestions(request);
     }
   }
@@ -298,7 +300,32 @@ Format:
       ]
     };
 
-    return suggestions[request.mealType] || [];
+    const mealSuggestions = suggestions[request.mealType] || [];
+    
+    // Ensure all suggestions have required properties including ingredients
+    return mealSuggestions.map(suggestion => ({
+      ...suggestion,
+      id: `fallback-${suggestion.name.toLowerCase().replace(/\s+/g, '-')}`,
+      ingredients: this.getDefaultIngredients(suggestion.name),
+      preparationTime: 15,
+      difficulty: 'easy',
+      protein: Math.round(suggestion.calories * 0.15 / 4) // Estimate protein
+    }));
+  }
+
+  private getDefaultIngredients(mealName: string): string[] {
+    const ingredientMap: { [key: string]: string[] } = {
+      'Oatmeal with Fruits': ['Rolled oats', 'Mixed berries', 'Milk', 'Honey'],
+      'Scrambled Eggs': ['Eggs', 'Butter', 'Salt', 'Pepper'],
+      'Grilled Chicken Salad': ['Chicken breast', 'Mixed greens', 'Tomatoes', 'Cucumber'],
+      'Quinoa Bowl': ['Quinoa', 'Mixed vegetables', 'Olive oil', 'Herbs'],
+      'Baked Fish with Vegetables': ['Fish fillet', 'Broccoli', 'Carrots', 'Olive oil'],
+      'Lentil Curry': ['Lentils', 'Onions', 'Tomatoes', 'Spices'],
+      'Greek Yogurt': ['Greek yogurt', 'Honey', 'Granola'],
+      'Mixed Nuts': ['Almonds', 'Walnuts', 'Cashews']
+    };
+    
+    return ingredientMap[mealName] || ['Mixed ingredients'];
   }
 
   private getFallbackConversationResponse(request: ConversationRequest): string {
@@ -364,10 +391,18 @@ Format:
         if (line.includes('Name:')) suggestion.name = line.split('Name:')[1]?.trim();
         if (line.includes('Calories:')) suggestion.calories = parseInt(line.split('Calories:')[1]?.trim());
         if (line.includes('Description:')) suggestion.description = line.split('Description:')[1]?.trim();
+        if (line.includes('Ingredients:')) {
+          const ingredientsText = line.split('Ingredients:')[1]?.trim();
+          suggestion.ingredients = ingredientsText ? ingredientsText.split(',').map(i => i.trim()) : [];
+        }
         if (line.includes('Prep Time:')) suggestion.preparationTime = parseInt(line.split('Prep Time:')[1]?.trim());
       }
       
       if (suggestion.name && suggestion.calories) {
+        // Ensure ingredients array exists
+        if (!suggestion.ingredients) {
+          suggestion.ingredients = ['Mixed ingredients'];
+        }
         suggestions.push(suggestion);
       }
     }
