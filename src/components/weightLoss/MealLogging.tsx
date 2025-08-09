@@ -191,12 +191,13 @@ export const MealLogging: React.FC<MealLoggingProps> = ({
     }
     
     console.log('🍽️ MealLogging: Saving meal with foods:', loggedFoods);
+    console.log('🍽️ MealLogging: Total calories calculated:', totalCalories);
     
     const meal: MealLog = {
       id: Date.now().toString(),
       goalId: 'weight-loss-goal',
       mealType,
-      loggedDate: new Date(),
+      loggedDate: new Date(), // This should be today's date
       plannedCalories: targetCalories,
       actualCalories: totalCalories,
       foodsConsumed: loggedFoods,
@@ -206,9 +207,17 @@ export const MealLogging: React.FC<MealLoggingProps> = ({
     };
 
     console.log('💾 MealLogging: Final meal object:', meal);
+    console.log('💾 MealLogging: Meal calories breakdown:', {
+      plannedCalories: meal.plannedCalories,
+      actualCalories: meal.actualCalories,
+      foodsCount: meal.foodsConsumed.length,
+      foodsCalories: meal.foodsConsumed.map(f => ({ name: f.name, calories: f.calories }))
+    });
     
-    // Save the meal and close modal
+    // Call the parent handler to save the meal
     onMealLogged(meal);
+    
+    // Close the modal after successful save
     onClose();
   };
 

@@ -66,14 +66,16 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
 
   // Calculate today's totals
   const today = new Date().toDateString();
-  const { getTodayMeals, getTodayCalories } = useWeightLossStore();
   
-  // Get fresh data from store each render
-  const todayMeals = useWeightLossStore.getState().getTodayMeals();
-  const storeCalories = useWeightLossStore.getState().getTodayCalories();
+  // Get fresh data from store each render using the hook
+  const { getTodayMeals, getTodayCalories } = useWeightLossStore();
+  const todayMeals = getTodayMeals();
+  const storeCalories = getTodayCalories();
 
-  // Use store calories for accurate count
+  // Use store calories for accurate count and log for debugging
   const totalCalories = storeCalories;
+  console.log('🔥 WeightLossToday: Current calories from store:', totalCalories, 'from', todayMeals.length, 'meals');
+  
   const totalProtein = todayMeals.reduce((sum, meal) => 
     sum + meal.foodsConsumed.reduce((mealSum, food) => mealSum + food.protein, 0), 0
   );
@@ -85,8 +87,9 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
   const mealDistribution = CalorieCalculator.distributeMealCalories(profile.dailyCalorieTarget);
 
   const getMealCalories = (mealType: string) => {
-    // Get fresh data from store for this specific meal type
-    const currentTodayMeals = useWeightLossStore.getState().getTodayMeals();
+    // Get fresh data from store for this specific meal type using the hook
+    const { getTodayMeals } = useWeightLossStore();
+    const currentTodayMeals = getTodayMeals();
     const mealTypeCalories = currentTodayMeals
       .filter(meal => meal.mealType === mealType)
       .reduce((sum, meal) => sum + meal.actualCalories, 0);
@@ -115,21 +118,19 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
   const handleMealLogged = (meal: MealLog) => {
     console.log('🍽️ WeightLossToday: Received meal log:', meal);
     
-    // Add to store using the hook
+    // Add to store first
     const { addMealLog } = useWeightLossStore.getState();
     addMealLog(meal);
     
-    // Then call parent handler
+    // Call parent handler
     onMealLogged(meal);
     
-    // Force immediate re-render
+    // Force immediate re-render and close modal
     forceUpdate();
     setRefreshKey(prev => prev + 1);
+    setShowMealLogging({ show: false, mealType: 'breakfast' });
     
     console.log('✅ WeightLossToday: Meal logged successfully');
-    
-    // Close the modal
-    setShowMealLogging({ show: false, mealType: 'breakfast' });
   };
   
   const handleWeightLog = () => {
@@ -214,7 +215,7 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
         {mealCards.map((meal) => {
           const currentCalories = getMealCalories(meal.type);
           const progress = (currentCalories / meal.target) * 100;
-          const todayMealsForType = useWeightLossStore.getState().getTodayMeals().filter(mealLog => mealLog.mealType === meal.type);
+          const todayMealsForType = todayMeals.filter(mealLog => mealLog.mealType === meal.type);
           const suggestion = getMealSuggestion(meal.type);
 
           return (
