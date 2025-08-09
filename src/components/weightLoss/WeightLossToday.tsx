@@ -143,6 +143,14 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
       
     } catch (error) {
       console.error('❌ Failed to save meal:', error);
+      
+      // Handle authentication errors specifically
+      if (error instanceof Error && error.message === 'User not authenticated') {
+        alert('Your session has expired. Please sign in again.');
+        await SupabaseService.signOut();
+        return;
+      }
+      
       // Still update local state as fallback
       setTodayMeals(prev => {
         const updated = [...prev, meal];

@@ -23,6 +23,7 @@ export class SupabaseService {
   static async signOut() {
     const { error } = await supabase.auth.signOut();
     return { error };
+    return true;
   }
 
   static async getCurrentUser() {
