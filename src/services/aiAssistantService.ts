@@ -187,7 +187,24 @@ User Patterns:
         response = await this.getOpenAIResponse(userId, message);
       } catch (error) {
         console.error('OpenAI API failed:', error);
-        response = this.getFallbackResponse(message);
+        
+        if (error instanceof Error) {
+          if (error.message === 'SETUP_REQUIRED') {
+            response = {
+              message: "🔧 **AI Setup Required**\n\nTo enable advanced AI coaching, please:\n\n1. Get an API key from [OpenAI](https://platform.openai.com/api-keys)\n2. Add it to your .env file as `VITE_OPENAI_API_KEY=your-key-here`\n3. Restart the development server\n\nFor now, I'll provide basic nutrition guidance!",
+              actionSuggestions: ["Get basic meal suggestions", "Log food manually", "Check calorie progress"]
+            };
+          } else if (error.message === 'INVALID_API_KEY') {
+            response = {
+              message: "🔑 **Invalid API Key**\n\nYour OpenAI API key appears to be invalid or expired. Please:\n\n1. Check your API key at [OpenAI Dashboard](https://platform.openai.com/api-keys)\n2. Update your .env file with the correct key\n3. Restart the development server\n\nUsing basic responses for now!",
+              actionSuggestions: ["Get meal suggestions", "Log food", "Check progress"]
+            };
+          } else {
+            response = this.getFallbackResponse(message);
+          }
+        } else {
+          response = this.getFallbackResponse(message);
+        }
       }
     } else {
       response = this.getFallbackResponse(message);

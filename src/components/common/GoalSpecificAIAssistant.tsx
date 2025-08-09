@@ -220,10 +220,21 @@ export const GoalSpecificAIAssistant: React.FC<GoalSpecificAIAssistantProps> = (
         }
       } catch (error) {
         console.error('AI response failed:', error);
+        
+        let errorMessage = "I'm having trouble connecting right now, but I'm still here to help! What would you like to know about your fitness goals?";
+        
+        if (error instanceof Error) {
+          if (error.message.includes('SETUP_REQUIRED')) {
+            errorMessage = "🔧 **AI Setup Required**\n\nTo enable advanced coaching:\n1. Get an OpenAI API key\n2. Add it to your .env file\n3. Restart the server\n\nI can still provide basic guidance!";
+          } else if (error.message.includes('INVALID_API_KEY')) {
+            errorMessage = "🔑 **Invalid API Key**\n\nPlease check your OpenAI API key in the .env file and restart the server. Using basic responses for now!";
+          }
+        }
+        
         const errorResponse: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: "I'm having trouble connecting right now, but I'm still here to help! What would you like to know about your weight management goals?",
+          content: errorMessage,
           timestamp: new Date()
         };
         setMessages(prev => [...prev, errorResponse]);
