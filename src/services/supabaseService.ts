@@ -22,13 +22,28 @@ export class SupabaseService {
 
   static async signOut() {
     const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Sign out error:', error);
+    }
     return { error };
-    return true;
   }
 
   static async getCurrentUser() {
     const { data: { user } } = await supabase.auth.getUser();
     return user;
+  }
+
+  // Helper method to handle authentication errors
+  private static handleAuthError(error: any) {
+    if (error?.message?.includes('JWT') || error?.message?.includes('expired') || error?.code === 'PGRST301') {
+      // Dispatch session error event
+      const event = new CustomEvent('sessionError', { 
+        detail: { error: 'session_expired' } 
+      });
+      window.dispatchEvent(event);
+      throw new Error('User not authenticated');
+    }
+    throw error;
   }
 
   // User Profiles
@@ -51,7 +66,7 @@ export class SupabaseService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) this.handleAuthError(error);
     return this.mapUserProfile(data);
   }
 
@@ -67,7 +82,7 @@ export class SupabaseService {
 
     if (error) {
       if (error.code === 'PGRST116') return null; // No rows found
-      throw error;
+      this.handleAuthError(error);
     }
 
     return this.mapUserProfile(data);
@@ -93,7 +108,7 @@ export class SupabaseService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) this.handleAuthError(error);
     return this.mapUserProfile(data);
   }
 
@@ -118,7 +133,7 @@ export class SupabaseService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) this.handleAuthError(error);
     return this.mapGoal(data);
   }
 
@@ -132,7 +147,7 @@ export class SupabaseService {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) this.handleAuthError(error);
     return data.map(this.mapGoal);
   }
 
@@ -156,7 +171,7 @@ export class SupabaseService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) this.handleAuthError(error);
     return this.mapGoal(data);
   }
 
@@ -193,7 +208,7 @@ export class SupabaseService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) this.handleAuthError(error);
     return this.mapLogEntry(data);
   }
 
@@ -207,7 +222,7 @@ export class SupabaseService {
       .eq('user_id', user.id)
       .order('timestamp', { ascending: false });
 
-    if (error) throw error;
+    if (error) this.handleAuthError(error);
     return data.map(this.mapLogEntry);
   }
 
@@ -233,7 +248,7 @@ export class SupabaseService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) this.handleAuthError(error);
     return this.mapWeightLossProfile(data);
   }
 
@@ -249,7 +264,7 @@ export class SupabaseService {
 
     if (error) {
       if (error.code === 'PGRST116') return null; // No rows found
-      throw error;
+      this.handleAuthError(error);
     }
 
     return this.mapWeightLossProfile(data);
@@ -295,7 +310,7 @@ export class SupabaseService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) this.handleAuthError(error);
     
     const mappedMeal = this.mapMealLog(data);
     console.log('✅ SupabaseService: Meal log created:', mappedMeal);
@@ -313,7 +328,7 @@ export class SupabaseService {
       .eq('user_id', user.id)
       .order('logged_date', { ascending: false });
 
-    if (error) throw error;
+    if (error) this.handleAuthError(error);
     
     const mappedMeals = data.map(this.mapMealLog);
     console.log('📊 SupabaseService: Fetched meal logs:', mappedMeals.length);
@@ -339,7 +354,7 @@ export class SupabaseService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) this.handleAuthError(error);
     return this.mapWeightEntry(data);
   }
 
@@ -353,7 +368,7 @@ export class SupabaseService {
       .eq('user_id', user.id)
       .order('date', { ascending: false });
 
-    if (error) throw error;
+    if (error) this.handleAuthError(error);
     return data.map(this.mapWeightEntry);
   }
 

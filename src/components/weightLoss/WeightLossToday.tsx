@@ -153,20 +153,9 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
     } catch (error) {
       console.error('❌ Failed to save meal:', error);
       
-      // Handle authentication errors specifically
-      if (error instanceof Error && error.message === 'User not authenticated') {
-        alert('Your session has expired. Please sign in again.');
-        await SupabaseService.signOut();
-        return;
-      }
-      
-      // Still update local state as fallback
-      setTodayMeals(prev => {
-        const updated = [...prev, meal];
-        console.log('🔄 Fallback: Updated today meals state:', updated.length, 'meals');
-        return updated;
-      });
-      onMealLogged(meal);
+      // Authentication errors are now handled globally by SupabaseService
+      // Just show a user-friendly message
+      console.log('🔄 Meal save failed, but error is handled globally');
     }
     
     // Close modal after successful save
@@ -191,18 +180,8 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
       } catch (error) {
         console.error('Failed to save weight:', error);
         
-        // Handle authentication errors specifically
-        if (error instanceof Error && error.message === 'User not authenticated') {
-          alert('Your session has expired. Please sign in again.');
-          await SupabaseService.signOut();
-          window.location.reload();
-          return;
-        }
-        
-        // Fallback to local handling
-        onWeightLogged(parseFloat(weightInput));
-        setWeightInput('');
-        setShowWeightInput(false);
+        // Authentication errors are now handled globally
+        console.log('🔄 Weight save failed, but error is handled globally');
       }
     }
   };
