@@ -35,15 +35,9 @@ export class SupabaseService {
 
   // Helper method to handle authentication errors
   private static handleAuthError(error: any) {
-    if (error?.message?.includes('JWT') || error?.message?.includes('expired') || error?.code === 'PGRST301') {
-      // Dispatch session error event
-      const event = new CustomEvent('sessionError', { 
-        detail: { error: 'session_expired' } 
-      });
-      window.dispatchEvent(event);
-      throw new Error('User not authenticated');
-    }
-    throw error;
+    console.warn('Database operation failed:', error);
+    // For now, just log the error and continue
+    return null;
   }
 
   // User Profiles

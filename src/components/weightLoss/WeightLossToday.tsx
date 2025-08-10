@@ -153,15 +153,10 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
     } catch (error) {
       console.error('❌ Failed to save meal:', error);
       
-      // Check if it's an authentication error
-      if (error.message === 'User not authenticated') {
-        console.log('🔄 Authentication required - user will be redirected to login');
-        // AuthWrapper will handle the redirect
-        return;
-      }
-      
-      // For other errors, show user-friendly message
-      console.log('🔄 Meal save failed:', error.message);
+      // For now, just add to local state even if Supabase save fails
+      setTodayMeals(prev => [...prev, meal]);
+      onMealLogged(meal);
+      console.log('🔄 Meal saved locally despite Supabase error');
     }
     
     // Close modal after successful save
@@ -186,8 +181,16 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
       } catch (error) {
         console.error('Failed to save weight:', error);
         
-        // Authentication errors are now handled globally
-        console.log('🔄 Weight save failed, but error is handled globally');
+        // For now, just save locally even if Supabase fails
+        const localEntry = {
+          id: Date.now().toString(),
+          weight: parseFloat(weightInput),
+          date: new Date()
+        };
+        setTodayWeightEntry(localEntry);
+        onWeightLogged(parseFloat(weightInput));
+        setWeightInput('');
+        setShowWeightInput(false);
       }
     }
   };

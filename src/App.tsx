@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { AuthWrapper } from './components/auth/AuthWrapper';
 import { useAppStore } from './store/useAppStore';
 import { useWeightLossStore } from './store/useWeightLossStore';
 
@@ -639,11 +638,9 @@ function App() {
   };
 
   return (
-    <AuthWrapper>
-      <div className="App">
-        {renderCurrentScreen()}
-      </div>
-    </AuthWrapper>
+    <div className="App">
+      {renderCurrentScreen()}
+    </div>
   );
 }
 
