@@ -639,9 +639,11 @@ function App() {
   };
 
   return (
-    <div className="App">
-      {renderCurrentScreen()}
-    </div>
+    <AuthWrapper>
+      <div className="App">
+        {renderCurrentScreen()}
+      </div>
+    </AuthWrapper>
   );
 }
 

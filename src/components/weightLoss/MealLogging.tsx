@@ -46,9 +46,9 @@ export const MealLogging: React.FC<MealLoggingProps> = ({
   const generateAISuggestions = async () => {
     console.log('🤖 Generating meal suggestions...');
     
-    if (isAIReady()) {
-      console.log('🤖 Using AI service for suggestions');
-      try {
+    try {
+      if (isAIReady()) {
+        console.log('🤖 Using AI service for suggestions');
         const suggestions = await aiService.generateMealSuggestions({
           remainingCalories: targetCalories,
           mealType,
@@ -61,20 +61,19 @@ export const MealLogging: React.FC<MealLoggingProps> = ({
           recentMeals: []
         });
         setAiSuggestions(suggestions);
-      } catch (error) {
-        console.warn('AI suggestions failed, using fallback:', error.message);
-        // Fall back to static suggestions
-        const fallbackSuggestions = MealSuggestionEngine.generateMealSuggestions(
+      } else {
+        console.log('🤖 AI not configured, using static suggestions');
+        const suggestions = MealSuggestionEngine.generateMealSuggestions(
           mealType,
           targetCalories,
           { type: 'vegetarian', allergies: [], dislikes: [], preferredFoods: [] },
           []
         );
-        setAiSuggestions(fallbackSuggestions);
+        setAiSuggestions(suggestions);
       }
-    } else {
-      console.log('🤖 AI not configured, using static suggestions');
-      // Use static suggestions when AI is not configured
+    } catch (error) {
+      console.warn('AI suggestions failed, using fallback:', error.message);
+      // Always fall back to static suggestions
       const suggestions = MealSuggestionEngine.generateMealSuggestions(
         mealType,
         targetCalories,

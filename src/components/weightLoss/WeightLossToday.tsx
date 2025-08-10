@@ -153,9 +153,15 @@ export const WeightLossToday: React.FC<WeightLossTodayProps> = ({
     } catch (error) {
       console.error('❌ Failed to save meal:', error);
       
-      // Authentication errors are now handled globally by SupabaseService
-      // Just show a user-friendly message
-      console.log('🔄 Meal save failed, but error is handled globally');
+      // Check if it's an authentication error
+      if (error.message === 'User not authenticated') {
+        console.log('🔄 Authentication required - user will be redirected to login');
+        // AuthWrapper will handle the redirect
+        return;
+      }
+      
+      // For other errors, show user-friendly message
+      console.log('🔄 Meal save failed:', error.message);
     }
     
     // Close modal after successful save

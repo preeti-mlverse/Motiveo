@@ -178,6 +178,11 @@ export class AIService {
         const errorText = await response.text();
         let errorMessage = `AI API call failed (${response.status}): ${response.statusText}`;
         
+        if (response.status === 401) {
+          console.error('❌ Invalid OpenAI API key. Please check your VITE_OPENAI_API_KEY in .env file');
+          throw new Error('INVALID_API_KEY');
+        }
+        
         try {
           const errorData = JSON.parse(errorText);
           if (errorData.error?.message) {
